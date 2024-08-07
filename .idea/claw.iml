@@ -2,7 +2,7 @@
 <module version="4">
   <component name="FacetManager">
     <facet type="Python" name="Python facet">
-      <configuration sdkName="Poetry (src) (2)" />
+      <configuration sdkName="Poetry (claw) (2)" />
     </facet>
   </component>
 </module>

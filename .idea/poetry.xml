@@ -4,6 +4,7 @@
     <option name="poetryVirtualenvPaths">
       <set>
         <option value="$USER_HOME$/Library/Caches/pypoetry/virtualenvs/claw-WR1uQZ9n-py3.10/bin/python" />
+        <option value="$USER_HOME$/Library/Caches/pypoetry/virtualenvs/claw-WR1uQZ9n-py3.12/bin/python" />
       </set>
     </option>
   </component>
