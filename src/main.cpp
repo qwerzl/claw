@@ -3,6 +3,8 @@
 #define WIFI_PASSWORD "13601748441"
 #define WIFI 0
 #define MQTT_SERVER "192.168.50.199"
+#define JOYSTICK_X_PIN A6
+#define JOYSTICK_Y_PIN A7
 
 /// ------ LIBRARY IMPORTS ------
 #include "Arduino.h"
@@ -23,18 +25,41 @@ TaskHandle_t dataCollectionTask;
 
 AccelStepper xStepper1(AccelStepper::DRIVER, 5, 2); // X Axis on the CNC shield
 AccelStepper xStepper2(AccelStepper::DRIVER, 6, 3); // Y Axis on the CNC shield
+AccelStepper yStepper(AccelStepper::DRIVER, 7, 4); // Z Axis on the CNC shield
 
-MultiStepper xSteppers;
+MultiStepper steppers;
+
+int joystick_x = 0;        //  Analog
+int joystick_y = 0;        //  Analog
 
 [[noreturn]] void steppersTaskFunc( void * pvParameters ){
     for(;;){
-        long positions[2]; // Array of desired stepper positions
+        long positions[3]; // Array of desired stepper positions
+        joystick_x = analogRead(JOYSTICK_X_PIN);
+        joystick_y = analogRead(JOYSTICK_Y_PIN);
 
-        positions[0] = 99999999;
-        positions[1] = 99999999;
-        xSteppers.moveTo(positions);
+        if (joystick_x > 4090) {
+            positions[0] = 99999999; //TODO: Get the exact maximum value
+            positions[1] = 99999999;
+        } else if (joystick_x < 10) {
+            positions[0] = 0;
+            positions[1] = 0;
+        } else {
+            positions[0] = xStepper1.currentPosition();
+            positions[1] = xStepper2.currentPosition();
+        }
 
-        xSteppers.run();
+        if (joystick_y > 4090) {
+            positions[2] = 99999999; //TODO: Get the exact maximum value
+        } else if (joystick_y < 10) {
+            positions[2] = 0;
+        } else {
+            positions[2] = yStepper.currentPosition();
+        }
+
+        steppers.moveTo(positions);
+
+        steppers.run();
 
         delay(1);
     }
@@ -78,12 +103,15 @@ void setup() {
 
     xStepper1.setMaxSpeed(100);
     xStepper2.setMaxSpeed(100);
+    yStepper.setMaxSpeed(100);
 
     xStepper1.setCurrentPosition(0);
     xStepper2.setCurrentPosition(0);
+    yStepper.setCurrentPosition(0);
 
-    xSteppers.addStepper(xStepper1);
-    xSteppers.addStepper(xStepper2);
+    steppers.addStepper(xStepper1);
+    steppers.addStepper(xStepper2);
+    steppers.addStepper(yStepper);
 
 
     //create a task that will be executed in the Task1code() function, with priority 1 and executed on core 0
