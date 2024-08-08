@@ -40,10 +40,14 @@ int joystick_y = 0;        //  Analog
         joystick_x = analogRead(JOYSTICK_X_PIN);
         joystick_y = analogRead(JOYSTICK_Y_PIN);
 
-        if (joystick_x > 4090) {
+        if (joystick_x > 2450) {
+            xStepper1.setMaxSpeed(100*(joystick_x-2048)/2048);
+            xStepper2.setMaxSpeed(100*(joystick_x-2048)/2048);
             positions[0] = X_AXIS_MAX_VALUE;
             positions[1] = X_AXIS_MAX_VALUE;
-        } else if (joystick_x < 10) {
+        } else if (joystick_x < 1550){
+            xStepper1.setMaxSpeed(100*(2048-joystick_x)/2048);
+            xStepper2.setMaxSpeed(100*(2048-joystick_x)/2048);
             positions[0] = 0;
             positions[1] = 0;
         } else {
@@ -51,9 +55,11 @@ int joystick_y = 0;        //  Analog
             positions[1] = xStepper2.currentPosition();
         }
 
-        if (joystick_y > 4090) {
+        if (joystick_y > 2450) {
+            yStepper.setMaxSpeed(100*(joystick_y-2048)/2048);
             positions[2] = Y_AXIS_MAX_VALUE;
-        } else if (joystick_y < 10) {
+        } else if (joystick_y < 1550) {
+            yStepper.setMaxSpeed(100*(2048-joystick_y)/2048);
             positions[2] = 0;
         } else {
             positions[2] = yStepper.currentPosition();
