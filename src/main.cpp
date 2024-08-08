@@ -79,6 +79,7 @@ int joystick_y = 0;        //  Analog
 
         JsonDocument stats;
         stats["x"] = xStepper1.currentPosition();
+        stats["y"] = yStepper.currentPosition();
 
         char buffer[100];
 
