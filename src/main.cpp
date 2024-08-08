@@ -5,6 +5,8 @@
 #define MQTT_SERVER "192.168.50.199"
 #define JOYSTICK_X_PIN A6
 #define JOYSTICK_Y_PIN A7
+#define X_AXIS_MAX_VALUE 1773
+#define Y_AXIS_MAX_VALUE 2573
 
 /// ------ LIBRARY IMPORTS ------
 #include "Arduino.h"
@@ -39,8 +41,8 @@ int joystick_y = 0;        //  Analog
         joystick_y = analogRead(JOYSTICK_Y_PIN);
 
         if (joystick_x > 4090) {
-            positions[0] = 99999999; //TODO: Get the exact maximum value
-            positions[1] = 99999999;
+            positions[0] = X_AXIS_MAX_VALUE;
+            positions[1] = X_AXIS_MAX_VALUE;
         } else if (joystick_x < 10) {
             positions[0] = 0;
             positions[1] = 0;
@@ -50,7 +52,7 @@ int joystick_y = 0;        //  Analog
         }
 
         if (joystick_y > 4090) {
-            positions[2] = 99999999; //TODO: Get the exact maximum value
+            positions[2] = Y_AXIS_MAX_VALUE;
         } else if (joystick_y < 10) {
             positions[2] = 0;
         } else {
