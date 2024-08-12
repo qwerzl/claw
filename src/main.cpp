@@ -3,8 +3,10 @@
 #define WIFI_PASSWORD "13601748441"
 #define WIFI 0
 #define MQTT_SERVER "192.168.50.199"
-#define JOYSTICK_X_PIN A6
-#define JOYSTICK_Y_PIN A7
+#define JOYSTICK_POSITIVE_X_PIN D11
+#define JOYSTICK_POSITIVE_Y_PIN D10
+#define JOYSTICK_NEGATIVE_X_PIN D9
+#define JOYSTICK_NEGATIVE_Y_PIN D12
 #define X_AXIS_MAX_VALUE 1773
 #define Y_AXIS_MAX_VALUE 2573
 
@@ -13,6 +15,7 @@
 #include "AccelStepper.h"
 #include "MultiStepper.h"
 #include "ArduinoJson.h"
+#include <DFRobot_MCP23017.h>
 
 #if WIFI == 1
 #include "utils/wifiConnection.h"
@@ -25,29 +28,26 @@ PubSubClient client(espClient);
 TaskHandle_t steppersTask;
 TaskHandle_t dataCollectionTask;
 
-AccelStepper xStepper1(AccelStepper::DRIVER, 5, 2); // X Axis on the CNC shield
-AccelStepper xStepper2(AccelStepper::DRIVER, 6, 3); // Y Axis on the CNC shield
-AccelStepper yStepper(AccelStepper::DRIVER, 7, 4); // Z Axis on the CNC shield
+AccelStepper xStepper1(AccelStepper::DRIVER, D5, D2); // X Axis on the CNC shield
+AccelStepper xStepper2(AccelStepper::DRIVER, D6, D3); // Y Axis on the CNC shield
+AccelStepper yStepper(AccelStepper::DRIVER, D7, D4); // Z Axis on the CNC shield
 
 MultiStepper steppers;
 
-int joystick_x = 0;        //  Analog
-int joystick_y = 0;        //  Analog
 
 [[noreturn]] void steppersTaskFunc( void * pvParameters ){
     for(;;){
         long positions[3]; // Array of desired stepper positions
-        joystick_x = analogRead(JOYSTICK_X_PIN);
-        joystick_y = analogRead(JOYSTICK_Y_PIN);
 
-        if (joystick_x > 2450) {
-            xStepper1.setMaxSpeed(100*(joystick_x-2048)/2048);
-            xStepper2.setMaxSpeed(100*(joystick_x-2048)/2048);
+        int joystick_positive_x = digitalRead(JOYSTICK_POSITIVE_X_PIN);
+        int joystick_positive_y = digitalRead(JOYSTICK_POSITIVE_Y_PIN);
+        int joystick_negative_x = digitalRead(JOYSTICK_NEGATIVE_X_PIN);
+        int joystick_negative_y = digitalRead(JOYSTICK_NEGATIVE_Y_PIN);
+
+        if (joystick_positive_x == LOW) {
             positions[0] = X_AXIS_MAX_VALUE;
             positions[1] = X_AXIS_MAX_VALUE;
-        } else if (joystick_x < 1550){
-            xStepper1.setMaxSpeed(100*(2048-joystick_x)/2048);
-            xStepper2.setMaxSpeed(100*(2048-joystick_x)/2048);
+        } else if (joystick_negative_x == LOW){
             positions[0] = 0;
             positions[1] = 0;
         } else {
@@ -55,11 +55,9 @@ int joystick_y = 0;        //  Analog
             positions[1] = xStepper2.currentPosition();
         }
 
-        if (joystick_y > 2450) {
-            yStepper.setMaxSpeed(100*(joystick_y-2048)/2048);
+        if (joystick_positive_y == LOW) {
             positions[2] = Y_AXIS_MAX_VALUE;
-        } else if (joystick_y < 1550) {
-            yStepper.setMaxSpeed(100*(2048-joystick_y)/2048);
+        } else if (joystick_negative_y == LOW) {
             positions[2] = 0;
         } else {
             positions[2] = yStepper.currentPosition();
@@ -110,6 +108,11 @@ void setup() {
     client.setCallback(callback);
 #endif
 
+    pinMode(JOYSTICK_NEGATIVE_X_PIN, INPUT_PULLUP);
+    pinMode(JOYSTICK_NEGATIVE_Y_PIN, INPUT_PULLUP);
+    pinMode(JOYSTICK_POSITIVE_X_PIN, INPUT_PULLUP);
+    pinMode(JOYSTICK_POSITIVE_Y_PIN, INPUT_PULLUP);
+
     xStepper1.setMaxSpeed(100);
     xStepper2.setMaxSpeed(100);
     yStepper.setMaxSpeed(100);
@@ -131,7 +134,7 @@ void setup() {
             nullptr,        /* parameter of the task */
             1,           /* priority of the task */
             &steppersTask,      /* Task handle to keep track of created task */
-            0);          /* pin task to core 0 */
+            1);          /* pin task to core 0 */
     delay(500);
 
     xTaskCreatePinnedToCore(
@@ -141,7 +144,7 @@ void setup() {
             nullptr,        /* parameter of the task */
             1,           /* priority of the task */
             &dataCollectionTask,      /* Task handle to keep track of created task */
-            1);          /* pin task to core 1 */
+            0);          /* pin task to core 1 */
     delay(500);
 }
 
