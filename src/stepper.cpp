@@ -1,9 +1,4 @@
 /// ------ PROGRAM CONFIGURATIONS ------
-#define WIFI_SSID "ASUS"
-#define WIFI_PASSWORD "1360***8441"
-#define WIFI 0
-#define MQTT_SERVER "192.168.50.199"
-
 #define X_AXIS_MAX_VALUE 1773
 #define Y_AXIS_MAX_VALUE 2573
 
@@ -17,14 +12,6 @@
 #include <semphr.h>
 
 #include "shared.h"
-
-#if WIFI == 1
-#include "utils/wifiConnection.h"
-#include <PubSubClient.h>
-#include "utils/mqtt.h"
-WiFiClient espClient;
-PubSubClient client(espClient);
-#endif
 
 TaskHandle_t steppersTask;
 TaskHandle_t dataCollectionTask;
@@ -101,18 +88,10 @@ SemaphoreHandle_t positionsMutex;
 
         int bytesWritten = serializeMsgPack(stats, buffer, 100);
 
-#if WIFI == 0
         for(int i = 0; i<bytesWritten; i++){
             Serial.printf("%02X ",buffer[i]);
         }
         Serial.println();
-#else
-        if (!client.connected()) {
-            mqtt::reconnect(&client);
-        }
-        client.loop();
-        client.publish("out", buffer);
-#endif
         delay(20);
     }
 }
@@ -121,12 +100,6 @@ void setup() {
     Serial.begin(115200);
     Serial0.begin(115200);
     Serial0.setTimeout(1);
-
-#if WIFI == 1
-    initWiFi(WIFI_SSID, WIFI_PASSWORD);
-    client.setServer(MQTT_SERVER, 1883);
-    client.setCallback(callback);
-#endif
 
     xStepper1.setMaxSpeed(100);
     xStepper2.setMaxSpeed(100);
