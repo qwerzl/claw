@@ -1,6 +1,6 @@
 /// ------ PROGRAM CONFIGURATIONS ------
 #define WIFI_SSID "ASUS"
-#define WIFI_PASSWORD "13601748441"
+#define WIFI_PASSWORD "1360***8441"
 #define WIFI 0
 #define MQTT_SERVER "192.168.50.199"
 
@@ -13,6 +13,8 @@
 #include "MultiStepper.h"
 #include "ArduinoJson.h"
 #include "Wire.h"
+
+#include "shared.h"
 
 #if WIFI == 1
 #include "utils/wifiConnection.h"
@@ -31,15 +33,7 @@ AccelStepper yStepper(AccelStepper::DRIVER, D7, D4); // Z Axis on the CNC shield
 
 MultiStepper steppers;
 
-enum dir {
-    XPositive,
-    XNegative,
-    YPositive,
-    YNegative,
-    Still
-};
-
-dir currentDir = Still;
+command currentDir = Still;
 
 [[noreturn]] void steppersTaskFunc( void * pvParameters ){
     for(;;){
@@ -49,19 +43,9 @@ dir currentDir = Still;
         positions[1] = xStepper2.currentPosition();
         positions[2] = yStepper.currentPosition();
 
-        int command = Serial0.readStringUntil('\n').toInt();
+        String receivedCommand = Serial0.readStringUntil('\n');
 
-        if (command == 1) {
-            currentDir = XPositive;
-        } else if (command == 2) {
-            currentDir = YPositive;
-        } else if (command == 3) {
-            currentDir = XNegative;
-        } else if (command == 4) {
-            currentDir = YNegative;
-        } else if (command == 5) {
-            currentDir = Still;
-        }
+        if (!receivedCommand.isEmpty()) currentDir = static_cast<command>(receivedCommand.toInt());
 
         Serial.println(currentDir);
 
@@ -121,7 +105,7 @@ dir currentDir = Still;
 void setup() {
     Serial.begin(115200);
     Serial0.begin(115200);
-    Serial0.setTimeout(1);
+    Serial0.setTimeout(0);
 
 #if WIFI == 1
     initWiFi(WIFI_SSID, WIFI_PASSWORD);
@@ -134,9 +118,9 @@ void setup() {
 //    pinMode(JOYSTICK_POSITIVE_X_PIN, INPUT_PULLUP);
 //    pinMode(JOYSTICK_POSITIVE_Y_PIN, INPUT_PULLUP);
 
-    xStepper1.setMaxSpeed(100);
-    xStepper2.setMaxSpeed(100);
-    yStepper.setMaxSpeed(100);
+    xStepper1.setMaxSpeed(150);
+    xStepper2.setMaxSpeed(150);
+    yStepper.setMaxSpeed(150);
 
     xStepper1.setCurrentPosition(0);
     xStepper2.setCurrentPosition(0);
