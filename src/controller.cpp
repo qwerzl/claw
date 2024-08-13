@@ -4,6 +4,7 @@
 #define JOYSTICK_POSITIVE_Y_PIN D3
 #define JOYSTICK_NEGATIVE_X_PIN D4
 #define JOYSTICK_NEGATIVE_Y_PIN D5
+#define BUTTTON_PIN D6
 
 enum dir {
     XPositive,
@@ -14,6 +15,7 @@ enum dir {
 };
 
 dir currentDir = Still;
+bool button1Pressed = false;
 
 void setup() {
     Serial.begin(115200);
@@ -30,6 +32,7 @@ void loop() {
     int joystick_positive_y = digitalRead(JOYSTICK_POSITIVE_Y_PIN);
     int joystick_negative_x = digitalRead(JOYSTICK_NEGATIVE_X_PIN);
     int joystick_negative_y = digitalRead(JOYSTICK_NEGATIVE_Y_PIN);
+    int button = digitalRead(BUTTTON_PIN);
 
     if (joystick_positive_x == LOW && currentDir != XPositive) {
         Serial.println("1");
@@ -55,6 +58,15 @@ void loop() {
         Serial.println("0");
         Serial0.println(5);
         currentDir = Still;
+    }
+
+    if (button == LOW && !button1Pressed) {
+        Serial.println("6-1");
+        Serial0.println(6);
+        button1Pressed = true;
+    } else if (button == HIGH && button1Pressed) {
+        Serial.println("6-0");
+        button1Pressed = false;
     }
 
     delay(50);
