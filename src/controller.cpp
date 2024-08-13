@@ -4,18 +4,14 @@
 #define JOYSTICK_POSITIVE_Y_PIN D3
 #define JOYSTICK_NEGATIVE_X_PIN D4
 #define JOYSTICK_NEGATIVE_Y_PIN D5
-#define BUTTTON_PIN D6
+#define Z_BUTTTON_PIN D6
+#define EM_BUTTON_PIN D7
 
-enum dir {
-    XPositive,
-    XNegative,
-    YPositive,
-    YNegative,
-    Still
-};
+#include "shared.h"
 
-dir currentDir = Still;
-bool button1Pressed = false;
+command currentDir = Still;
+bool z_button_pressed = false;
+bool em_button_pressed = false;
 
 void setup() {
     Serial.begin(115200);
@@ -32,41 +28,44 @@ void loop() {
     int joystick_positive_y = digitalRead(JOYSTICK_POSITIVE_Y_PIN);
     int joystick_negative_x = digitalRead(JOYSTICK_NEGATIVE_X_PIN);
     int joystick_negative_y = digitalRead(JOYSTICK_NEGATIVE_Y_PIN);
-    int button = digitalRead(BUTTTON_PIN);
+    int z_button = digitalRead(Z_BUTTTON_PIN);
+    int em_button = digitalRead(EM_BUTTON_PIN);
 
     if (joystick_positive_x == LOW && currentDir != XPositive) {
-        Serial.println("1");
-        Serial0.println(1);
+        Serial0.println(XPositive);
         currentDir = XPositive;
     }
     else if (joystick_positive_y == LOW && currentDir != YPositive) {
-        Serial.println("2");
-        Serial0.println(2);
+        Serial0.println(YPositive);
         currentDir = YPositive;
     }
     else if (joystick_negative_x == LOW && currentDir != XNegative) {
-        Serial.println("3");
-        Serial0.println(3);
+        Serial0.println(XNegative);
         currentDir = XNegative;
     }
     else if (joystick_negative_y == LOW && currentDir != YNegative) {
-        Serial.println("4");
-        Serial0.println(4);
+        Serial0.println(YNegative);
         currentDir = YNegative;
     }
     else if ((joystick_positive_x + joystick_negative_x + joystick_positive_y + joystick_negative_y) == 4 && currentDir != Still) {
-        Serial.println("0");
-        Serial0.println(5);
+        Serial0.println(Still);
         currentDir = Still;
     }
 
-    if (button == LOW && !button1Pressed) {
-        Serial.println("6-1");
-        Serial0.println(6);
-        button1Pressed = true;
-    } else if (button == HIGH && button1Pressed) {
-        Serial.println("6-0");
-        button1Pressed = false;
+    if (z_button == LOW && !z_button_pressed) {
+        Serial0.println(Z_ON);
+        z_button_pressed = true;
+    } else if (z_button == HIGH && z_button_pressed) {
+        Serial0.println(Z_STILL);
+        z_button_pressed = false;
+    }
+
+    if (em_button == LOW && !em_button_pressed) {
+        Serial0.println(EM_ON);
+        z_button_pressed = true;
+    } else if (em_button == HIGH && em_button_pressed) {
+        Serial0.println(EM_OFF);
+        z_button_pressed = false;
     }
 
     delay(50);
