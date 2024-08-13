@@ -14,6 +14,8 @@
 #include "ArduinoJson.h"
 #include "Wire.h"
 
+#include <semphr.h>
+
 #include "shared.h"
 
 #if WIFI == 1
@@ -35,48 +37,61 @@ MultiStepper steppers;
 
 command currentDir = Still;
 
+long positions[3];
+
+SemaphoreHandle_t positionsMutex;
+
 [[noreturn]] void steppersTaskFunc( void * pvParameters ){
     for(;;){
-        long positions[3];
-
-        positions[0] = xStepper1.currentPosition();
-        positions[1] = xStepper2.currentPosition();
-        positions[2] = yStepper.currentPosition();
-
-        String receivedCommand = Serial0.readStringUntil('\n');
-
-        if (!receivedCommand.isEmpty()) currentDir = static_cast<command>(receivedCommand.toInt());
-
-        Serial.println(currentDir);
-
-        switch (currentDir) {
-            case XPositive:
-                positions[0] = X_AXIS_MAX_VALUE;
-                positions[1] = X_AXIS_MAX_VALUE;
-                break;
-            case YPositive:
-                positions[2] = Y_AXIS_MAX_VALUE;
-                break;
-            case XNegative:
-                positions[0] = 0;
-                positions[1] = 0;
-                break;
-            case YNegative:
-                positions[2] = 0;
-                break;
-            default:
-                break;
+        if ( xSemaphoreTake( positionsMutex, ( TickType_t ) 2 ) == pdTRUE )
+        {
+            if (currentDir == Still) {
+                positions[0] = xStepper1.currentPosition();
+                positions[1] = xStepper2.currentPosition();
+                positions[2] = yStepper.currentPosition();
+            }
+            xSemaphoreGive( positionsMutex ); // Now free or "Give" the Serial Port for others.
         }
 
         steppers.moveTo(positions);
 
         steppers.run();
+
+//        delay(2);
     }
 }
 
 [[noreturn]] void dataCollectionTaskFunc( void * pvParameters ){
     for(;;){
         Serial.print("STATS | ");
+        String receivedCommand = Serial0.readStringUntil('\n');
+
+        if (!receivedCommand.isEmpty()) currentDir = static_cast<command>(receivedCommand.toInt());
+
+        Serial.println(currentDir);
+
+        if ( xSemaphoreTake( positionsMutex, ( TickType_t ) 5 ) == pdTRUE )
+        {
+            switch (currentDir) {
+                case XPositive:
+                    positions[0] = X_AXIS_MAX_VALUE;
+                    positions[1] = X_AXIS_MAX_VALUE;
+                    break;
+                case YPositive:
+                    positions[2] = Y_AXIS_MAX_VALUE;
+                    break;
+                case XNegative:
+                    positions[0] = 0;
+                    positions[1] = 0;
+                    break;
+                case YNegative:
+                    positions[2] = 0;
+                    break;
+                default:
+                    break;
+            }
+            xSemaphoreGive( positionsMutex ); // Now free or "Give" the Serial Port for others.
+        }
 
         JsonDocument stats;
         stats["x"] = xStepper1.currentPosition();
@@ -98,14 +113,14 @@ command currentDir = Still;
         client.loop();
         client.publish("out", buffer);
 #endif
-        delay(1000);
+        delay(20);
     }
 }
 
 void setup() {
     Serial.begin(115200);
     Serial0.begin(115200);
-    Serial0.setTimeout(0);
+    Serial0.setTimeout(1);
 
 #if WIFI == 1
     initWiFi(WIFI_SSID, WIFI_PASSWORD);
@@ -113,14 +128,9 @@ void setup() {
     client.setCallback(callback);
 #endif
 
-//    pinMode(JOYSTICK_NEGATIVE_X_PIN, INPUT_PULLUP);
-//    pinMode(JOYSTICK_NEGATIVE_Y_PIN, INPUT_PULLUP);
-//    pinMode(JOYSTICK_POSITIVE_X_PIN, INPUT_PULLUP);
-//    pinMode(JOYSTICK_POSITIVE_Y_PIN, INPUT_PULLUP);
-
-    xStepper1.setMaxSpeed(150);
-    xStepper2.setMaxSpeed(150);
-    yStepper.setMaxSpeed(150);
+    xStepper1.setMaxSpeed(100);
+    xStepper2.setMaxSpeed(100);
+    yStepper.setMaxSpeed(100);
 
     xStepper1.setCurrentPosition(0);
     xStepper2.setCurrentPosition(0);
@@ -130,6 +140,12 @@ void setup() {
     steppers.addStepper(xStepper2);
     steppers.addStepper(yStepper);
 
+    if ( positionsMutex == nullptr )  // Check to confirm that the Serial Semaphore has not already been created.
+    {
+        positionsMutex = xSemaphoreCreateMutex();  // Create a mutex semaphore we will use to manage the Serial Port
+        if ( ( positionsMutex ) != nullptr )
+            xSemaphoreGive( ( positionsMutex ) );  // Make the Serial Port available for use, by "Giving" the Semaphore.
+    }
 
     //create a task that will be executed in the Task1code() function, with priority 1 and executed on core 0
     xTaskCreatePinnedToCore(
