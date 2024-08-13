@@ -3,10 +3,7 @@
 #define WIFI_PASSWORD "13601748441"
 #define WIFI 0
 #define MQTT_SERVER "192.168.50.199"
-#define JOYSTICK_POSITIVE_X_PIN D11
-#define JOYSTICK_POSITIVE_Y_PIN D10
-#define JOYSTICK_NEGATIVE_X_PIN D9
-#define JOYSTICK_NEGATIVE_Y_PIN D12
+
 #define X_AXIS_MAX_VALUE 1773
 #define Y_AXIS_MAX_VALUE 2573
 
@@ -15,7 +12,7 @@
 #include "AccelStepper.h"
 #include "MultiStepper.h"
 #include "ArduinoJson.h"
-#include <DFRobot_MCP23017.h>
+#include "Wire.h"
 
 #if WIFI == 1
 #include "utils/wifiConnection.h"
@@ -34,40 +31,62 @@ AccelStepper yStepper(AccelStepper::DRIVER, D7, D4); // Z Axis on the CNC shield
 
 MultiStepper steppers;
 
+enum dir {
+    XPositive,
+    XNegative,
+    YPositive,
+    YNegative,
+    Still
+};
+
+dir currentDir = Still;
 
 [[noreturn]] void steppersTaskFunc( void * pvParameters ){
     for(;;){
-        long positions[3]; // Array of desired stepper positions
+        long positions[3];
 
-        int joystick_positive_x = digitalRead(JOYSTICK_POSITIVE_X_PIN);
-        int joystick_positive_y = digitalRead(JOYSTICK_POSITIVE_Y_PIN);
-        int joystick_negative_x = digitalRead(JOYSTICK_NEGATIVE_X_PIN);
-        int joystick_negative_y = digitalRead(JOYSTICK_NEGATIVE_Y_PIN);
+        positions[0] = xStepper1.currentPosition();
+        positions[1] = xStepper2.currentPosition();
+        positions[2] = yStepper.currentPosition();
 
-        if (joystick_positive_x == LOW) {
-            positions[0] = X_AXIS_MAX_VALUE;
-            positions[1] = X_AXIS_MAX_VALUE;
-        } else if (joystick_negative_x == LOW){
-            positions[0] = 0;
-            positions[1] = 0;
-        } else {
-            positions[0] = xStepper1.currentPosition();
-            positions[1] = xStepper2.currentPosition();
+        int command = Serial0.readStringUntil('\n').toInt();
+
+        if (command == 1) {
+            currentDir = XPositive;
+        } else if (command == 2) {
+            currentDir = YPositive;
+        } else if (command == 3) {
+            currentDir = XNegative;
+        } else if (command == 4) {
+            currentDir = YNegative;
+        } else if (command == 5) {
+            currentDir = Still;
         }
 
-        if (joystick_positive_y == LOW) {
-            positions[2] = Y_AXIS_MAX_VALUE;
-        } else if (joystick_negative_y == LOW) {
-            positions[2] = 0;
-        } else {
-            positions[2] = yStepper.currentPosition();
+        Serial.println(currentDir);
+
+        switch (currentDir) {
+            case XPositive:
+                positions[0] = X_AXIS_MAX_VALUE;
+                positions[1] = X_AXIS_MAX_VALUE;
+                break;
+            case YPositive:
+                positions[2] = Y_AXIS_MAX_VALUE;
+                break;
+            case XNegative:
+                positions[0] = 0;
+                positions[1] = 0;
+                break;
+            case YNegative:
+                positions[2] = 0;
+                break;
+            default:
+                break;
         }
 
         steppers.moveTo(positions);
 
         steppers.run();
-
-        delay(1);
     }
 }
 
@@ -101,6 +120,8 @@ MultiStepper steppers;
 
 void setup() {
     Serial.begin(115200);
+    Serial0.begin(115200);
+    Serial0.setTimeout(1);
 
 #if WIFI == 1
     initWiFi(WIFI_SSID, WIFI_PASSWORD);
@@ -108,10 +129,10 @@ void setup() {
     client.setCallback(callback);
 #endif
 
-    pinMode(JOYSTICK_NEGATIVE_X_PIN, INPUT_PULLUP);
-    pinMode(JOYSTICK_NEGATIVE_Y_PIN, INPUT_PULLUP);
-    pinMode(JOYSTICK_POSITIVE_X_PIN, INPUT_PULLUP);
-    pinMode(JOYSTICK_POSITIVE_Y_PIN, INPUT_PULLUP);
+//    pinMode(JOYSTICK_NEGATIVE_X_PIN, INPUT_PULLUP);
+//    pinMode(JOYSTICK_NEGATIVE_Y_PIN, INPUT_PULLUP);
+//    pinMode(JOYSTICK_POSITIVE_X_PIN, INPUT_PULLUP);
+//    pinMode(JOYSTICK_POSITIVE_Y_PIN, INPUT_PULLUP);
 
     xStepper1.setMaxSpeed(100);
     xStepper2.setMaxSpeed(100);
