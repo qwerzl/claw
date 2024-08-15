@@ -7,11 +7,15 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.09"
+python = "^3.10"
 msgpack = "^1.0.8"
 pyserial = "^3.5"
 openai = "^1.40.6"
 pandas = "^2.2.2"
+plotly = "^5.23.0"
+scikit-learn = "^1.5.1"
+scipy = "^1.14.0"
+matplotlib = "^3.9.2"
 
 
 [build-system]
