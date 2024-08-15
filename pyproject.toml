@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "claw"
+version = "0.1.0"
+description = ""
+authors = ["qwerzl <me@qwerzl.me>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.09"
+msgpack = "^1.0.8"
+pyserial = "^3.5"
+openai = "^1.40.6"
+pandas = "^2.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

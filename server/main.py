@@ -36,7 +36,8 @@ def read_from_serial(port, baudrate):
                     hex_data = line.split('|')[1].strip()
                     decoded_data = decode_msgpack_data(hex_data)
                     if decoded_data:
-                        print(f"Decoded Data: {decoded_data}")
+                        data.append(decoded_data)
+                        print(data)
 
             time.sleep(0.1)
         except KeyboardInterrupt:
@@ -48,10 +49,11 @@ def read_from_serial(port, baudrate):
 
     ser.close()
 
-if __name__ == "__main__":
-    port = find_esp_port()
-    if port is None:
-        print("No ESP device found.")
-    else:
-        baudrate = 9600  # Replace with your actual baud rate
-        read_from_serial(port, baudrate)
+
+port = find_esp_port()
+data = []
+if port is None:
+    print("No ESP device found.")
+else:
+    baudrate = 9600  # Replace with your actual baud rate
+    read_from_serial(port, baudrate)
