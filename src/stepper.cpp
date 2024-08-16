@@ -1,7 +1,3 @@
-/// ------ PROGRAM CONFIGURATIONS ------
-#define X_AXIS_MAX_VALUE 1773
-#define Y_AXIS_MAX_VALUE 2573
-
 /// ------ LIBRARY IMPORTS ------
 #include "Arduino.h"
 #include "AccelStepper.h"
@@ -13,18 +9,31 @@
 
 #include "shared.h"
 
+/// ------ PROGRAM CONFIGURATIONS ------
+#define X_AXIS_MAX_VALUE 1773
+#define Y_AXIS_MAX_VALUE 2573
+#define Z_AXIS_MAX_VALUE 200 //TODO: Determine Z axis max value
+#define STATS_COLLECTION_INTERVAL 1000
+
+#define Z_MOTOR_PIN_1 3
+#define Z_MOTOR_PIN_2 2
+#define Z_MOTOR_PIN_3 1
+#define Z_MOTOR_PIN_4 0
+
 TaskHandle_t steppersTask;
 TaskHandle_t dataCollectionTask;
 
 AccelStepper xStepper1(AccelStepper::DRIVER, D5, D2); // X Axis on the CNC shield
 AccelStepper xStepper2(AccelStepper::DRIVER, D6, D3); // Y Axis on the CNC shield
 AccelStepper yStepper(AccelStepper::DRIVER, D7, D4); // Z Axis on the CNC shield
+AccelStepper zStepper(8, Z_MOTOR_PIN_1, Z_MOTOR_PIN_3, Z_MOTOR_PIN_2, Z_MOTOR_PIN_4);
 
 MultiStepper steppers;
 
 command currentDir = Still;
+command zCommand = Z_STILL;
 
-long positions[3];
+long positions[4];
 
 SemaphoreHandle_t positionsMutex;
 
@@ -37,8 +46,13 @@ SemaphoreHandle_t positionsMutex;
                 positions[1] = xStepper2.currentPosition();
                 positions[2] = yStepper.currentPosition();
             }
+            if (zCommand == Z_STILL) {
+                positions[3] = zStepper.currentPosition();
+            }
             xSemaphoreGive( positionsMutex ); // Now free or "Give" the Serial Port for others.
         }
+
+        Serial.println(zStepper.currentPosition());
 
         steppers.moveTo(positions);
 
@@ -49,13 +63,37 @@ SemaphoreHandle_t positionsMutex;
 }
 
 [[noreturn]] void dataCollectionTaskFunc( void * pvParameters ){
+    long last_collected = millis();
     for(;;){
-        Serial.print("STATS | ");
+
+        if (millis()-last_collected > STATS_COLLECTION_INTERVAL) {
+            Serial0.print("STATS | ");
+            JsonDocument stats;
+            stats["x"] = xStepper1.currentPosition();
+            stats["y"] = yStepper.currentPosition();
+
+            char buffer[100];
+
+            int bytesWritten = serializeMsgPack(stats, buffer, 100);
+
+            for(int i = 0; i<bytesWritten; i++){
+                Serial0.printf("%02X ",buffer[i]);
+            }
+            Serial0.println();
+            last_collected = millis();
+        }
+
         String receivedCommand = Serial0.readStringUntil('\n');
 
-        if (!receivedCommand.isEmpty()) currentDir = static_cast<command>(receivedCommand.toInt());
+        if (!receivedCommand.isEmpty()) {
+            auto processedCurrentDir = static_cast<command>(receivedCommand.toInt());
+            if (receivedCommand) {
+                if (processedCurrentDir == Z_ON || processedCurrentDir == Z_STILL) zCommand = processedCurrentDir;
+                else currentDir = processedCurrentDir;
+            }
+        }
 
-        Serial.println(currentDir);
+        Serial.println(zCommand);
 
         if ( xSemaphoreTake( positionsMutex, ( TickType_t ) 5 ) == pdTRUE )
         {
@@ -77,21 +115,16 @@ SemaphoreHandle_t positionsMutex;
                 default:
                     break;
             }
+            switch (zCommand) {
+                case Z_ON:
+                    positions[3] = Z_AXIS_MAX_VALUE;
+                    break;
+                default:
+                    break;
+            }
             xSemaphoreGive( positionsMutex ); // Now free or "Give" the Serial Port for others.
         }
 
-        JsonDocument stats;
-        stats["x"] = xStepper1.currentPosition();
-        stats["y"] = yStepper.currentPosition();
-
-        char buffer[100];
-
-        int bytesWritten = serializeMsgPack(stats, buffer, 100);
-
-        for(int i = 0; i<bytesWritten; i++){
-            Serial.printf("%02X ",buffer[i]);
-        }
-        Serial.println();
         delay(20);
     }
 }
@@ -104,14 +137,17 @@ void setup() {
     xStepper1.setMaxSpeed(100);
     xStepper2.setMaxSpeed(100);
     yStepper.setMaxSpeed(100);
+    zStepper.setMaxSpeed(10);
 
     xStepper1.setCurrentPosition(0);
     xStepper2.setCurrentPosition(0);
     yStepper.setCurrentPosition(0);
+    zStepper.setCurrentPosition(0);
 
     steppers.addStepper(xStepper1);
     steppers.addStepper(xStepper2);
     steppers.addStepper(yStepper);
+    steppers.addStepper(zStepper);
 
     if ( positionsMutex == nullptr )  // Check to confirm that the Serial Semaphore has not already been created.
     {
