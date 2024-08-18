@@ -13,13 +13,8 @@ enum command {
     YNegative,
     Still,
 
-    // Button: electromagnet
-    EM_ON,
-    EM_OFF,
-
-    //Button: Z axis
-    Z_ON,
-    Z_STILL,
+    // Button
+    BUTTON_TOGGLE
 };
 
 #endif //CLAW_SHARED_H

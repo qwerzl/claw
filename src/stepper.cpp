@@ -12,13 +12,13 @@
 /// ------ PROGRAM CONFIGURATIONS ------
 #define X_AXIS_MAX_VALUE 1773
 #define Y_AXIS_MAX_VALUE 2573
-#define Z_AXIS_MAX_VALUE 200 //TODO: Determine Z axis max value
+#define Z_AXIS_MAX_VALUE 2000 //TODO: Determine Z axis max value
 #define STATS_COLLECTION_INTERVAL 1000
 
-#define Z_MOTOR_PIN_1 3
-#define Z_MOTOR_PIN_2 2
-#define Z_MOTOR_PIN_3 1
-#define Z_MOTOR_PIN_4 0
+#define Z_MOTOR_PIN_1 A3
+#define Z_MOTOR_PIN_2 A2
+#define Z_MOTOR_PIN_3 A1
+#define Z_MOTOR_PIN_4 A0
 
 TaskHandle_t steppersTask;
 TaskHandle_t dataCollectionTask;
@@ -31,7 +31,7 @@ AccelStepper zStepper(8, Z_MOTOR_PIN_1, Z_MOTOR_PIN_3, Z_MOTOR_PIN_2, Z_MOTOR_PI
 MultiStepper steppers;
 
 command currentDir = Still;
-command zCommand = Z_STILL;
+bool zOn = false;
 
 long positions[4];
 
@@ -46,13 +46,12 @@ SemaphoreHandle_t positionsMutex;
                 positions[1] = xStepper2.currentPosition();
                 positions[2] = yStepper.currentPosition();
             }
-            if (zCommand == Z_STILL) {
+            if (!zOn) {
                 positions[3] = zStepper.currentPosition();
             }
+            Serial.println(zStepper.currentPosition());
             xSemaphoreGive( positionsMutex ); // Now free or "Give" the Serial Port for others.
         }
-
-        Serial.println(zStepper.currentPosition());
 
         steppers.moveTo(positions);
 
@@ -86,14 +85,16 @@ SemaphoreHandle_t positionsMutex;
         String receivedCommand = Serial0.readStringUntil('\n');
 
         if (!receivedCommand.isEmpty()) {
-            auto processedCurrentDir = static_cast<command>(receivedCommand.toInt());
+            auto processedReceivedCommand = static_cast<command>(receivedCommand.toInt());
             if (receivedCommand) {
-                if (processedCurrentDir == Z_ON || processedCurrentDir == Z_STILL) zCommand = processedCurrentDir;
-                else currentDir = processedCurrentDir;
+                Serial.println(receivedCommand);
+                if (processedReceivedCommand == BUTTON_TOGGLE) {
+//                    if (xStepper1.currentPosition() in some area && yStepper.currentPosition() in some area) toggle EM
+                    zOn = !zOn;
+                }
+                else currentDir = processedReceivedCommand;
             }
         }
-
-        Serial.println(zCommand);
 
         if ( xSemaphoreTake( positionsMutex, ( TickType_t ) 5 ) == pdTRUE )
         {
@@ -115,12 +116,14 @@ SemaphoreHandle_t positionsMutex;
                 default:
                     break;
             }
-            switch (zCommand) {
-                case Z_ON:
-                    positions[3] = Z_AXIS_MAX_VALUE;
-                    break;
-                default:
-                    break;
+            if (zOn) {
+                if (abs(positions[3] - zStepper.currentPosition()) < 10){
+                    if (positions[3] == Z_AXIS_MAX_VALUE) {
+                        positions[3] = 0;
+                    } else {
+                        positions[3] = Z_AXIS_MAX_VALUE;
+                    }
+                }
             }
             xSemaphoreGive( positionsMutex ); // Now free or "Give" the Serial Port for others.
         }
@@ -137,7 +140,7 @@ void setup() {
     xStepper1.setMaxSpeed(100);
     xStepper2.setMaxSpeed(100);
     yStepper.setMaxSpeed(100);
-    zStepper.setMaxSpeed(10);
+    zStepper.setMaxSpeed(200);
 
     xStepper1.setCurrentPosition(0);
     xStepper2.setCurrentPosition(0);

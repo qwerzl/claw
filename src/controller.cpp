@@ -1,14 +1,13 @@
 #include "Arduino.h"
 
 #define WIFI_SSID "ASUS"
-#define WIFI_PASSWORD "13601748441"
+#define WIFI_PASSWORD "1360***8441"
 #define MQTT_SERVER "192.168.50.199"
 #define JOYSTICK_POSITIVE_X_PIN D2
 #define JOYSTICK_POSITIVE_Y_PIN D3
 #define JOYSTICK_NEGATIVE_X_PIN D4
 #define JOYSTICK_NEGATIVE_Y_PIN D5
-#define Z_BUTTTON_PIN D6
-#define EM_BUTTON_PIN D7
+#define BUTTTON_PIN D6
 
 #include "shared.h"
 #include "utils/wifiConnection.h"
@@ -19,37 +18,35 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 command currentDir = Still;
-bool z_button_pressed = false;
-bool em_button_pressed = false;
+bool buttonPressed = false;
 
 void setup() {
     Serial.begin(115200);
     Serial0.begin(115200);
 
-    initWiFi(WIFI_SSID, WIFI_PASSWORD);
-    client.setServer(MQTT_SERVER, 1883);
-    client.setCallback(callback);
+//    initWiFi(WIFI_SSID, WIFI_PASSWORD);
+//    client.setServer(MQTT_SERVER, 1883);
+//    client.setCallback(callback);
 
     pinMode(JOYSTICK_NEGATIVE_X_PIN, INPUT_PULLUP);
     pinMode(JOYSTICK_NEGATIVE_Y_PIN, INPUT_PULLUP);
     pinMode(JOYSTICK_POSITIVE_X_PIN, INPUT_PULLUP);
     pinMode(JOYSTICK_POSITIVE_Y_PIN, INPUT_PULLUP);
-    pinMode(EM_BUTTON_PIN, INPUT_PULLUP);
-    pinMode(Z_BUTTTON_PIN, INPUT_PULLUP);
+    pinMode(BUTTTON_PIN, INPUT_PULLUP);
 }
 
 void loop() {
-    if (!client.connected()) {
-        mqtt::reconnect(&client);
-    }
-    client.loop();
+//    if (!client.connected()) {
+//        mqtt::reconnect(&client);
+//    }
+//    client.loop();
 //    client.publish("out", buffer);
 
     int joystick_positive_x = digitalRead(JOYSTICK_POSITIVE_X_PIN);
     int joystick_positive_y = digitalRead(JOYSTICK_POSITIVE_Y_PIN);
     int joystick_negative_x = digitalRead(JOYSTICK_NEGATIVE_X_PIN);
     int joystick_negative_y = digitalRead(JOYSTICK_NEGATIVE_Y_PIN);
-    int z_button = digitalRead(Z_BUTTTON_PIN);
+    int button = digitalRead(BUTTTON_PIN);
 //    int em_button = digitalRead(EM_BUTTON_PIN);
 
     if (joystick_positive_x == LOW && currentDir != XPositive) {
@@ -78,25 +75,13 @@ void loop() {
         currentDir = Still;
     }
 
-    if (z_button == LOW && !z_button_pressed) {
-        Serial0.println(Z_ON);
-        Serial.println(Z_ON);
-        z_button_pressed = true;
-    } else if (z_button == HIGH && z_button_pressed) {
-        Serial0.println(Z_STILL);
-        Serial.println(Z_STILL);
-        z_button_pressed = false;
+    if (button == LOW && !buttonPressed) {
+        buttonPressed = true;
+    } else if (button == HIGH && buttonPressed) {
+        Serial0.println(BUTTON_TOGGLE);
+        Serial.println(BUTTON_TOGGLE);
+        buttonPressed = false;
     }
-
-//    if (em_button == LOW && !em_button_pressed) {
-//        Serial0.println(EM_ON);
-//        Serial.println(EM_ON);
-//        z_button_pressed = true;
-//    } else if (em_button == HIGH && em_button_pressed) {
-//        Serial0.println(EM_OFF);
-//        Serial.println(EM_ON);
-//        z_button_pressed = false;
-//    }
 
     delay(50);
 }
