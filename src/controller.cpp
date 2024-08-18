@@ -1,7 +1,7 @@
 #include "Arduino.h"
 
 #define WIFI_SSID "ASUS"
-#define WIFI_PASSWORD "1360***8441"
+#define WIFI_PASSWORD "1360**48441"
 #define MQTT_SERVER "192.168.50.199"
 #define JOYSTICK_POSITIVE_X_PIN D2
 #define JOYSTICK_POSITIVE_Y_PIN D3
@@ -23,10 +23,11 @@ bool buttonPressed = false;
 void setup() {
     Serial.begin(115200);
     Serial0.begin(115200);
+    Serial0.setTimeout(10);
 
-//    initWiFi(WIFI_SSID, WIFI_PASSWORD);
-//    client.setServer(MQTT_SERVER, 1883);
-//    client.setCallback(callback);
+    initWiFi(WIFI_SSID, WIFI_PASSWORD);
+    client.setServer(MQTT_SERVER, 1883);
+    client.setCallback(callback);
 
     pinMode(JOYSTICK_NEGATIVE_X_PIN, INPUT_PULLUP);
     pinMode(JOYSTICK_NEGATIVE_Y_PIN, INPUT_PULLUP);
@@ -36,10 +37,16 @@ void setup() {
 }
 
 void loop() {
-//    if (!client.connected()) {
-//        mqtt::reconnect(&client);
-//    }
-//    client.loop();
+    if (!client.connected()) {
+        mqtt::reconnect(&client);
+    }
+    client.loop();
+    String receivedCommand = Serial0.readStringUntil('\n');
+
+    if (!receivedCommand.isEmpty()) {
+        Serial.println(receivedCommand);
+        client.publish("out", receivedCommand.c_str());
+    }
 //    client.publish("out", buffer);
 
     int joystick_positive_x = digitalRead(JOYSTICK_POSITIVE_X_PIN);

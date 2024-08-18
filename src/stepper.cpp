@@ -70,6 +70,7 @@ SemaphoreHandle_t positionsMutex;
             JsonDocument stats;
             stats["x"] = xStepper1.currentPosition();
             stats["y"] = yStepper.currentPosition();
+            stats["z"] = zStepper.currentPosition();
 
             char buffer[100];
 
