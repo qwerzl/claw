@@ -49,7 +49,6 @@ SemaphoreHandle_t positionsMutex;
             if (!zOn) {
                 positions[3] = zStepper.currentPosition();
             }
-            Serial.println(zStepper.currentPosition());
             xSemaphoreGive( positionsMutex ); // Now free or "Give" the Serial Port for others.
         }
 
@@ -100,18 +99,18 @@ SemaphoreHandle_t positionsMutex;
         if ( xSemaphoreTake( positionsMutex, ( TickType_t ) 5 ) == pdTRUE )
         {
             switch (currentDir) {
-                case XPositive:
-                    positions[0] = X_AXIS_MAX_VALUE;
-                    positions[1] = X_AXIS_MAX_VALUE;
-                    break;
                 case YPositive:
+                    positions[0] = X_AXIS_MAX_VALUE;
+                    positions[1] = -X_AXIS_MAX_VALUE;
+                    break;
+                case XPositive:
                     positions[2] = Y_AXIS_MAX_VALUE;
                     break;
-                case XNegative:
+                case YNegative:
                     positions[0] = 0;
                     positions[1] = 0;
                     break;
-                case YNegative:
+                case XNegative:
                     positions[2] = 0;
                     break;
                 default:
@@ -138,8 +137,8 @@ void setup() {
     Serial0.begin(115200);
     Serial0.setTimeout(1);
 
-    xStepper1.setMaxSpeed(100);
-    xStepper2.setMaxSpeed(100);
+    xStepper1.setMaxSpeed(600);
+    xStepper2.setMaxSpeed(600);
     yStepper.setMaxSpeed(100);
     zStepper.setMaxSpeed(200);
 
