@@ -1,8 +1,8 @@
 #include "Arduino.h"
 
-#define WIFI_SSID "ASUS"
-#define WIFI_PASSWORD "1360**48441"
-#define MQTT_SERVER "192.168.50.199"
+#define WIFI_SSID "The Weave"
+#define WIFI_PASSWORD "wea**277"
+#define MQTT_SERVER "10.249.19.70"
 #define JOYSTICK_POSITIVE_X_PIN D2
 #define JOYSTICK_POSITIVE_Y_PIN D3
 #define JOYSTICK_NEGATIVE_X_PIN D4

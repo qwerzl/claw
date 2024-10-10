@@ -4,29 +4,22 @@
 #include "MultiStepper.h"
 #include "ArduinoJson.h"
 #include "Wire.h"
-
 #include <semphr.h>
 
 #include "shared.h"
 
 /// ------ PROGRAM CONFIGURATIONS ------
-#define X_AXIS_MAX_VALUE 1773
-#define Y_AXIS_MAX_VALUE 2573
-#define Z_AXIS_MAX_VALUE 2000 //TODO: Determine Z axis max value
+#define X_AXIS_MAX_VALUE (-62200)
+#define Y_AXIS_MAX_VALUE (150000)
+#define Z_AXIS_MAX_VALUE (15000) //TODO: Determine Z axis max value
 #define STATS_COLLECTION_INTERVAL 1000
-
-#define Z_MOTOR_PIN_1 A3
-#define Z_MOTOR_PIN_2 A2
-#define Z_MOTOR_PIN_3 A1
-#define Z_MOTOR_PIN_4 A0
 
 TaskHandle_t steppersTask;
 TaskHandle_t dataCollectionTask;
 
 AccelStepper xStepper1(AccelStepper::DRIVER, D5, D2); // X Axis on the CNC shield
-AccelStepper xStepper2(AccelStepper::DRIVER, D6, D3); // Y Axis on the CNC shield
-AccelStepper yStepper(AccelStepper::DRIVER, D7, D4); // Z Axis on the CNC shield
-AccelStepper zStepper(8, Z_MOTOR_PIN_1, Z_MOTOR_PIN_3, Z_MOTOR_PIN_2, Z_MOTOR_PIN_4);
+AccelStepper yStepper(AccelStepper::DRIVER, D7, D4); // Y Axis on the CNC shield
+AccelStepper zStepper(AccelStepper::DRIVER, D6, D3);
 
 MultiStepper steppers;
 
@@ -43,11 +36,10 @@ SemaphoreHandle_t positionsMutex;
         {
             if (currentDir == Still) {
                 positions[0] = xStepper1.currentPosition();
-                positions[1] = xStepper2.currentPosition();
-                positions[2] = yStepper.currentPosition();
+                positions[1] = yStepper.currentPosition();
             }
             if (!zOn) {
-                positions[3] = zStepper.currentPosition();
+                positions[2] = zStepper.currentPosition();
             }
             xSemaphoreGive( positionsMutex ); // Now free or "Give" the Serial Port for others.
         }
@@ -89,6 +81,7 @@ SemaphoreHandle_t positionsMutex;
             if (receivedCommand) {
                 Serial.println(receivedCommand);
                 if (processedReceivedCommand == BUTTON_TOGGLE) {
+                    Serial.println("Button Toggled");
 //                    if (xStepper1.currentPosition() in some area && yStepper.currentPosition() in some area) toggle EM
                     zOn = !zOn;
                 }
@@ -100,28 +93,26 @@ SemaphoreHandle_t positionsMutex;
         {
             switch (currentDir) {
                 case YPositive:
-                    positions[0] = X_AXIS_MAX_VALUE;
-                    positions[1] = -X_AXIS_MAX_VALUE;
+                    positions[1] = Y_AXIS_MAX_VALUE;
                     break;
                 case XPositive:
-                    positions[2] = Y_AXIS_MAX_VALUE;
+                    positions[0] = X_AXIS_MAX_VALUE;
                     break;
                 case YNegative:
-                    positions[0] = 0;
                     positions[1] = 0;
                     break;
                 case XNegative:
-                    positions[2] = 0;
+                    positions[0] = 0;
                     break;
                 default:
                     break;
             }
             if (zOn) {
-                if (abs(positions[3] - zStepper.currentPosition()) < 10){
-                    if (positions[3] == Z_AXIS_MAX_VALUE) {
-                        positions[3] = 0;
+                if (abs(positions[2] - zStepper.currentPosition()) < 5){
+                    if (positions[2] == Z_AXIS_MAX_VALUE) {
+                        positions[2] = 0;
                     } else {
-                        positions[3] = Z_AXIS_MAX_VALUE;
+                        positions[2] = Z_AXIS_MAX_VALUE;
                     }
                 }
             }
@@ -137,18 +128,18 @@ void setup() {
     Serial0.begin(115200);
     Serial0.setTimeout(1);
 
-    xStepper1.setMaxSpeed(600);
-    xStepper2.setMaxSpeed(600);
-    yStepper.setMaxSpeed(100);
-    zStepper.setMaxSpeed(200);
+    xStepper1.setMaxSpeed(15000);
+//    xStepper2.setMaxSpeed(600);
+    yStepper.setMaxSpeed(14000);
+    zStepper.setMaxSpeed(5000);
 
     xStepper1.setCurrentPosition(0);
-    xStepper2.setCurrentPosition(0);
+//    xStepper2.setCurrentPosition(0);
     yStepper.setCurrentPosition(0);
     zStepper.setCurrentPosition(0);
 
     steppers.addStepper(xStepper1);
-    steppers.addStepper(xStepper2);
+//    steppers.addStepper(xStepper2);
     steppers.addStepper(yStepper);
     steppers.addStepper(zStepper);
 
