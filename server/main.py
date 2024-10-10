@@ -1,59 +1,69 @@
-import serial
-import serial.tools.list_ports
-import time
+import paho.mqtt.client as mqtt
 import msgpack
 
-def find_esp_port():
-    ports = serial.tools.list_ports.comports()
-    for port in ports:
-        if "ESP" in port.description:
-            return port.device
-    return None
+# MQTT settings
+MQTT_BROKER = "127.0.0.1"
+MQTT_PORT = 1883
+MQTT_TOPIC = "out"
 
-def decode_msgpack_data(data):
+data = []
+
+# Function to decode MsgPack data after stripping "STATS |" prefix
+def decode_msgpack_data(payload):
     try:
-        unpacked_data = msgpack.unpackb(bytearray.fromhex(data))
-        return unpacked_data
+        # Convert the payload to a string and check for the "STATS |" prefix
+        message = payload.decode('utf-8')
+
+        if message.startswith("STATS |"):
+            hex_data = message.split('|')[1].strip()  # Get the MsgPack part
+            unpacked_data = msgpack.unpackb(bytearray.fromhex(hex_data))  # Decode MsgPack data
+            return unpacked_data
+        else:
+            print("Invalid message format, skipping...")
+            return None
     except Exception as e:
         print(f"Failed to decode msgpack data: {e}")
         return None
 
-def read_from_serial(port, baudrate):
+# Callback when the client receives a message from the broker
+def on_message(client, userdata, message):
+    print(f"Received message on topic {message.topic}")
+
+    payload = message.payload
+    decoded_data = decode_msgpack_data(payload)
+
+    if decoded_data:
+        data.append(decoded_data)
+        print("Decoded data:", data)
+
+# Set up MQTT client
+def setup_mqtt_client():
+    client = mqtt.Client()
+
+    client.on_message = on_message
+
     try:
-        ser = serial.Serial(port, baudrate, timeout=1)
-        print(f"Connected to {port} at {baudrate} baudrate.")
-    except serial.SerialException as e:
+        client.connect(MQTT_BROKER, MQTT_PORT)
+        client.subscribe(MQTT_TOPIC)
+        print(f"Connected to MQTT broker at {MQTT_BROKER} on topic '{MQTT_TOPIC}'")
+
+        return client
+    except Exception as e:
+        print(f"Failed to connect to MQTT broker: {e}")
+        return None
+
+# Main loop for MQTT client
+def start_mqtt_loop(client):
+    try:
+        client.loop_forever()  # Blocking call, processes network traffic and dispatches callbacks
+    except KeyboardInterrupt:
+        print("Exiting...")
+    except Exception as e:
         print(f"Error: {e}")
-        return
+    finally:
+        client.disconnect()
 
-    while True:
-        try:
-            if ser.in_waiting > 0:
-                line = ser.readline().decode('utf-8').rstrip()
-                print(f"Received: {line}")
-
-                if line.startswith("STATS |"):
-                    hex_data = line.split('|')[1].strip()
-                    decoded_data = decode_msgpack_data(hex_data)
-                    if decoded_data:
-                        data.append(decoded_data)
-                        print(data)
-
-            time.sleep(0.1)
-        except KeyboardInterrupt:
-            print("Exiting...")
-            break
-        except Exception as e:
-            print(f"Error: {e}")
-            break
-
-    ser.close()
-
-
-port = find_esp_port()
-data = []
-if port is None:
-    print("No ESP device found.")
-else:
-    baudrate = 9600  # Replace with your actual baud rate
-    read_from_serial(port, baudrate)
+# Initialize MQTT client and start listening
+client = setup_mqtt_client()
+if client:
+    start_mqtt_loop(client)

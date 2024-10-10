@@ -702,6 +702,20 @@ files = [
 ]
 
 [[package]]
+name = "paho-mqtt"
+version = "2.1.0"
+description = "MQTT version 5.0/3.1.1 client class"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "paho_mqtt-2.1.0-py3-none-any.whl", hash = "sha256:6db9ba9b34ed5bc6b6e3812718c7e06e2fd7444540df2455d2c51bd58808feee"},
+    {file = "paho_mqtt-2.1.0.tar.gz", hash = "sha256:12d6e7511d4137555a3f6ea167ae846af2c7357b10bc6fa4f7c3968fc1723834"},
+]
+
+[package.extras]
+proxy = ["pysocks"]
+
+[[package]]
 name = "pandas"
 version = "2.2.2"
 description = "Powerful data structures for data analysis, time series, and statistics"
@@ -1242,4 +1256,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "79233391af8bc79babd6c19f1fca8b6534c1190630001c62e6014d498e38c8f3"
+content-hash = "40cf1aec7c20c9f744736c2fefa7a99aef125980585a58a5681778eb70d09a05"
