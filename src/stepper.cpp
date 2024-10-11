@@ -10,16 +10,19 @@
 
 /// ------ PROGRAM CONFIGURATIONS ------
 #define X_AXIS_MAX_VALUE (-62200)
-#define Y_AXIS_MAX_VALUE (150000)
-#define Z_AXIS_MAX_VALUE (15000) //TODO: Determine Z axis max value
+#define Y_AXIS_MAX_VALUE (-150000)
+#define Z_AXIS_MAX_VALUE (15000)
 #define STATS_COLLECTION_INTERVAL 1000
+
+#define EM_IN1 A6
+#define EM_IN2 A7
 
 TaskHandle_t steppersTask;
 TaskHandle_t dataCollectionTask;
 
 AccelStepper xStepper1(AccelStepper::DRIVER, D5, D2); // X Axis on the CNC shield
-AccelStepper yStepper(AccelStepper::DRIVER, D7, D4); // Y Axis on the CNC shield
-AccelStepper zStepper(AccelStepper::DRIVER, D6, D3);
+AccelStepper zStepper(AccelStepper::DRIVER, D7, D4); // Y Axis on the CNC shield
+AccelStepper yStepper(AccelStepper::DRIVER, D6, D3);
 
 MultiStepper steppers;
 
@@ -34,7 +37,7 @@ SemaphoreHandle_t positionsMutex;
     for(;;){
         if ( xSemaphoreTake( positionsMutex, ( TickType_t ) 2 ) == pdTRUE )
         {
-            if (currentDir == Still) {
+            if (currentDir == Still || zOn) {
                 positions[0] = xStepper1.currentPosition();
                 positions[1] = yStepper.currentPosition();
             }
@@ -82,8 +85,22 @@ SemaphoreHandle_t positionsMutex;
                 Serial.println(receivedCommand);
                 if (processedReceivedCommand == BUTTON_TOGGLE) {
                     Serial.println("Button Toggled");
-//                    if (xStepper1.currentPosition() in some area && yStepper.currentPosition() in some area) toggle EM
-                    zOn = !zOn;
+                    if (abs(xStepper1.currentPosition()) < 4895 && abs(yStepper.currentPosition()) < 17958) {
+                        // Reverse current for a short while and turn off
+                        analogWrite(EM_IN1, 0);
+                        digitalWrite(EM_IN1, LOW);
+                        analogWrite(EM_IN2, 255);
+                        delay(10);
+                        analogWrite(EM_IN2, 0);
+                        digitalWrite(EM_IN2, LOW);
+                        analogWrite(EM_IN1, 0);
+                        digitalWrite(EM_IN1, LOW);
+                    } else {
+                        analogWrite(EM_IN2, 0);
+                        digitalWrite(EM_IN2, LOW);
+                        analogWrite(EM_IN1, 255);
+                        zOn = !zOn;
+                    }
                 }
                 else currentDir = processedReceivedCommand;
             }
@@ -96,7 +113,7 @@ SemaphoreHandle_t positionsMutex;
                     positions[1] = Y_AXIS_MAX_VALUE;
                     break;
                 case XPositive:
-                    positions[0] = X_AXIS_MAX_VALUE;
+                    positions[0] = (-X_AXIS_MAX_VALUE);
                     break;
                 case YNegative:
                     positions[1] = 0;
@@ -129,19 +146,27 @@ void setup() {
     Serial0.setTimeout(1);
 
     xStepper1.setMaxSpeed(15000);
-//    xStepper2.setMaxSpeed(600);
     yStepper.setMaxSpeed(14000);
-    zStepper.setMaxSpeed(5000);
+    zStepper.setMaxSpeed(10000);
 
     xStepper1.setCurrentPosition(0);
-//    xStepper2.setCurrentPosition(0);
     yStepper.setCurrentPosition(0);
     zStepper.setCurrentPosition(0);
 
     steppers.addStepper(xStepper1);
-//    steppers.addStepper(xStepper2);
     steppers.addStepper(yStepper);
     steppers.addStepper(zStepper);
+
+    // THIS LINE OF CODE SAVED MY WHOLE MONTH
+    pinMode(D8,OUTPUT);digitalWrite(D8,LOW);
+
+    pinMode(EM_IN1, OUTPUT);
+    pinMode(EM_IN2, OUTPUT);
+
+    analogWrite(EM_IN2, 0);
+    digitalWrite(EM_IN2, LOW);
+    analogWrite(EM_IN1, 0);
+    digitalWrite(EM_IN1, LOW);
 
     if ( positionsMutex == nullptr )  // Check to confirm that the Serial Semaphore has not already been created.
     {
