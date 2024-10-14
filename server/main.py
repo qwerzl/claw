@@ -1,5 +1,7 @@
 import paho.mqtt.client as mqtt
 import msgpack
+from utils.gpt import get_gpt_response
+from utils.printer.label import print_markdown
 
 # MQTT settings
 MQTT_BROKER = "127.0.0.1"
@@ -18,7 +20,12 @@ def decode_msgpack_data(payload):
             hex_data = message.split('|')[1].strip()  # Get the MsgPack part
             unpacked_data = msgpack.unpackb(bytearray.fromhex(hex_data))  # Decode MsgPack data
             return unpacked_data
+        elif "EM Off" in message:
+            return 0
+        # elif "EM On" in message:
+        #     return 1
         else:
+            print(message)
             print("Invalid message format, skipping...")
             return None
     except Exception as e:
@@ -32,7 +39,18 @@ def on_message(client, userdata, message):
     payload = message.payload
     decoded_data = decode_msgpack_data(payload)
 
-    if decoded_data:
+    if decoded_data == 0:
+        print("-------------------------")
+        print(data)
+        response = get_gpt_response(data)
+        print(response)
+        print_markdown(response.choices[0].message.content)
+        data.clear()
+
+    # elif decoded_data == 1:
+    #     data.clear()
+
+    elif decoded_data:
         data.append(decoded_data)
         print("Decoded data:", data)
 
