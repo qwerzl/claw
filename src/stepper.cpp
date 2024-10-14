@@ -5,6 +5,7 @@
 #include "ArduinoJson.h"
 #include "Wire.h"
 #include <semphr.h>
+#include <fmt/core.h>
 
 #include "shared.h"
 
@@ -28,6 +29,7 @@ MultiStepper steppers;
 
 command currentDir = Still;
 bool zOn = false;
+bool emOn = false;
 
 long positions[4];
 
@@ -60,11 +62,12 @@ SemaphoreHandle_t positionsMutex;
     for(;;){
 
         if (millis()-last_collected > STATS_COLLECTION_INTERVAL) {
-            Serial0.print("STATS | ");
+            Serial0.printf("STATS | ");
             JsonDocument stats;
             stats["x"] = xStepper1.currentPosition();
             stats["y"] = yStepper.currentPosition();
             stats["z"] = zStepper.currentPosition();
+            stats["em"] = emOn;
 
             char buffer[100];
 
@@ -73,7 +76,6 @@ SemaphoreHandle_t positionsMutex;
             for(int i = 0; i<bytesWritten; i++){
                 Serial0.printf("%02X ",buffer[i]);
             }
-            Serial0.println();
             last_collected = millis();
         }
 
@@ -95,10 +97,19 @@ SemaphoreHandle_t positionsMutex;
                         digitalWrite(EM_IN2, LOW);
                         analogWrite(EM_IN1, 0);
                         digitalWrite(EM_IN1, LOW);
+                        if (emOn) {
+                            Serial0.println("EM Off");
+                            emOn = false;
+                        }
+
                     } else {
                         analogWrite(EM_IN2, 0);
                         digitalWrite(EM_IN2, LOW);
                         analogWrite(EM_IN1, 255);
+                        if (!emOn) {
+                            Serial0.println("EM On");
+                            emOn = true;
+                        }
                         zOn = !zOn;
                     }
                 }
