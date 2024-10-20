@@ -17,6 +17,15 @@ scikit-learn = "^1.5.1"
 scipy = "^1.14.0"
 matplotlib = "^3.9.2"
 paho-mqtt = "^2.1.0"
+escpos = "^2.0.0"
+pillow = "9.5.0"
+markdown = "^3.7"
+imgkit = "^1.2.3"
+requests = "^2.32.3"
+playwright = "^1.47.0"
+opencv-python = "^4.10.0.84"
+python-dotenv = "^1.0.1"
+pyqt5 = "^5.15.11"
 
 
 [build-system]

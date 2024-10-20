@@ -1,8 +1,9 @@
 from openai import OpenAI
 import json
-
 from openai.types.chat import ChatCompletion
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def get_gpt_response(claw_data: list) -> ChatCompletion:
     with open("server/contents/prompt.md", "r") as file:
@@ -32,7 +33,7 @@ def get_gpt_response(claw_data: list) -> ChatCompletion:
                 ]
             },
         ],
-        temperature=1.18,
+        temperature=1.15,
         max_tokens=1024,
         top_p=1,
         frequency_penalty=0,
