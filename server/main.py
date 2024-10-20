@@ -2,6 +2,9 @@ import paho.mqtt.client as mqtt
 import msgpack
 from utils.gpt import get_gpt_response
 from utils.printer.label import print_markdown
+import zmq
+
+context = zmq.Context()
 
 # MQTT settings
 MQTT_BROKER = "127.0.0.1"
@@ -42,30 +45,39 @@ def on_message(client, userdata, message):
     if decoded_data == 0:
         print("-------------------------")
         print(data)
-        response = get_gpt_response(data)
+        response = get_gpt_response(data).choices[0].message.content
         print(response)
-        print_markdown(response.choices[0].message.content)
+
+        # First line of response is the movie choice
+        choice = response.split("\n")[0]
+        if "Alice" in choice:
+            socket.send(b"0")
+        elif "Inception" in choice:
+            socket.send(b"1")
+        elif "Sisyphus" in choice:
+            socket.send(b"2")
+        elif "Vertigo" in choice:
+            socket.send(b"3")
+
+        print_markdown(response.split("\n", 1)[1])
         data.clear()
-
-    # elif decoded_data == 1:
-    #     data.clear()
-
     elif decoded_data:
         data.append(decoded_data)
         print("Decoded data:", data)
 
 # Set up MQTT client
 def setup_mqtt_client():
-    client = mqtt.Client()
+    _client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
-    client.on_message = on_message
+    _client.on_message = on_message
+    # _client.on_log = lambda c, u, level, buf: print(f"MQTT log: {buf}")
 
     try:
-        client.connect(MQTT_BROKER, MQTT_PORT)
-        client.subscribe(MQTT_TOPIC)
+        _client.connect(MQTT_BROKER, MQTT_PORT)
+        _client.subscribe(MQTT_TOPIC)
         print(f"Connected to MQTT broker at {MQTT_BROKER} on topic '{MQTT_TOPIC}'")
 
-        return client
+        return _client
     except Exception as e:
         print(f"Failed to connect to MQTT broker: {e}")
         return None
@@ -80,6 +92,10 @@ def start_mqtt_loop(client):
         print(f"Error: {e}")
     finally:
         client.disconnect()
+
+print("Connecting to zmq server…")
+socket = context.socket(zmq.REQ)
+socket.connect("tcp://localhost:5555")
 
 # Initialize MQTT client and start listening
 client = setup_mqtt_client()
