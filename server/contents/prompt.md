@@ -4,7 +4,9 @@ The claw machine differs from typical ones by its way of grabbing objects. This 
 
 The JSON document includes an array of the movement of the claw every second from the start of the process until the object falls into the desired position. `x` refers to the movement of the claw parallel to the player, `y` refers to its movement proportional to the player, `z` means its movement up and down. `em` is a boolean value, indicating the on and off of the electromagnet.
 
-Please choose one type of falling from the database below according to the movement data and give descriptions about this type of falling . You can answer in a style suitable to the falling eg. casual style, academic style, Shakespearean style etc.
+Please choose one type of falling from the database below according to the movement data and:
+1. In the first line, give your choice of the concept ie. Inception or Sisyphus or Alice in Wonderland or Vertigo.
+2. Give descriptions about this type of falling. You can answer in a style suitable to the falling eg. casual style, academic style, Shakespearean style etc.
 
 You are not allowed to directly talk about any element in the JSON data. eg. say "the claw is turned on" instead of "`em` is true". Also, this whole data is called "movement data" instead of "JSON data".
 
